@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws'])
+angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws', 'pusher-angular'])
 
 .config(['$routeProvider', 'crAwsProvider', function($routeProvider, crAwsProvider) {
   $routeProvider.when('/realtime', {
@@ -9,24 +9,16 @@ angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws'])
   });
 
 
-  crAwsProvider.setCognito({
-   AccountId: '728936874646',
-   IdentityPoolId: 'eu-west-1:716e19a5-32f0-47b6-8e36-86f2ba1f1d9f',
-   RoleArnUnauth: 'arn:aws:iam::728936874646:role/Cognito_cloudappUnauth_DefaultRole',
-   RoleArnAuth: 'arn:aws:iam::728936874646:role/Cognito_cloudappAuth_DefaultRole'
- });
-
 
 
 }])
 
 
-.controller('RealtimeCtrl', ['$rootScope', '$scope', '$http', 'config', 'crAws', 'crAwsCognitoService', function($rootScope, $scope, $http, config, crAws, crAwsCognitoService) {
+.controller('RealtimeCtrl', ['$rootScope', '$scope', '$http', 'config', 'crAws', 'crAwsCognitoService', '$pusher', function($rootScope, $scope, $http, config, crAws, crAwsCognitoService, $pusher) {
 
   $scope.myBeers = [];
   $scope.dbBeers = [];
   $scope.identityId = false;
-  console.log("xyz", crAws.cognito);
 
   $http.get("http://s3-eu-west-1.amazonaws.com/cloudapp-bucket/beers.json").then(function(response) {
     $scope.dbBeers = response.data;
@@ -42,11 +34,13 @@ angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws'])
   });*/
 
   $scope.getMyBeers = function() {
+	  
       crAws.cognito.getSync("favourite").then(function(dataset){
         dataset.sync({
           onSuccess: function(datasetRemote, newRecords) {
-
+        	  console.log("success");
             dataset.get("beers").then(function(result) {
+          	  console.log("success2", result);
               if(result){
                 $scope.myBeers = result;
               }
@@ -92,16 +86,24 @@ angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws'])
       });
     });
   };
+  
+  
+  $scope.stream = [];
+  $scope.$on('new-post', function(event, data) {
+	  $scope.stream.push(data);
+	  console.log(data.user, $scope.identityId);
+	  if(data.user == $scope.identityId) {
+		  $scope.getMyBeers();
+	  }
+  });
+  
 
 
 
-  $scope.star = function(index) {
-    $scope.myBeers[index].starred = true;
+  $scope.changeBeer = function(index) {
+    $scope.myBeers[index].starred = !$scope.myBeers[index].starred;
     $scope.syncMyBeers();
-  };
-  $scope.unStar = function(index) {
-    $scope.myBeers[index].starred = false;
-    $scope.syncMyBeers();
+    $rootScope.$broadcast('beer-changed', {user: $scope.identityId, data: $scope.myBeers[index]});
   };
 
 
@@ -110,7 +112,7 @@ angular.module('cloudparty.realtime', ['ngRoute', 'cr.aws'])
   $rootScope.$on('auth:login:success', function(event, data) {
     if(data.provider == "cognito" && data.auth.getIdentityId()) {
       $scope.identityId = data.auth.getIdentityId();
-      $scope.getMyBeers();
+	  $scope.getMyBeers();
     }
   });
 

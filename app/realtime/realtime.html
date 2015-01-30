@@ -1,5 +1,5 @@
 <div class="jumbotron">
-    <h2>Realtime fro CloudParty!</h2>
+    <h2>Realtime @ CloudParty!</h2>
     <p>
 
         <button google-signin client-id='{{ googleId }}' after-signin="signinCallback(oauth)"></button>
@@ -9,36 +9,35 @@
     </p>
 </div>
 
-<div class="row">
+<div class="row text-center text-danger lead" ng-hide="identityId"> ... waiting for identity ...</div>
+<div class="row" ng-show="identityId">
 
-    <div class="col-lg-6">
-        <h2>Beers available:</h2>
+    <div class="col-lg-6 col-sm-6 col-xs-6">
+        <h2>My beers:</h2>
         <div ng-repeat="beer in myBeers">
             <div class="panel" ng-class="{'panel-success': beer.starred, 'panel-danger': !beer.starred}">
               <div class="panel-heading">
                 <h3>{{ beer.name }}</h3>
                 <p class="lead">
                   {{ beer.price | currency }}
-                  <button class="pull-right btn btn-default"  ng-click="star($index)" ng-show="!beer.starred">Click to STAR</button>
-                  <button class="pull-right btn btn-default"  ng-click="unStar($index)" ng-show="beer.starred">Click to UNSTAR</button>
+                  <button class="pull-right btn btn-default"  ng-click="changeBeer($index)"><span ng-show="!beer.starred"">Click to STAR</span><span ng-show="beer.starred"">Click to UNSTAR</span></button>
                 </p>
               </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <h2>Beers available:</h2>
-        <div ng-repeat="beer in remoteBeers track by $index">
-            <div class="panel panel-success">
+    <div class="col-lg-6 col-sm-6 col-xs-6">
+        <h2>Beer stream:</h2>
+        <div ng-repeat="message in stream track by $index">
+            <div class="panel" ng-class="{'panel-success': message.data.starred, 'panel-danger': !message.data.starred}">
               <div class="panel-heading">
-                <h3>{{ beer.name }}</h3>
-                <p class="lead">
-                  {{ beer.price | currency }}
-                  <button class="pull-right btn btn-danger"  ng-click="unstar(beer)">Unstar</button>
+                <p>
+                  {{ message.user }} <span ng-show="message.data.starred">likes</span><span ng-hide="message.data.starred">doesn't like</span> {{ message.data.name }}
                 </p>
               </div>
             </div>
         </div>
+        <p class="text-center lead" ng-hide="stream.length">...no messages...</p>
     </div>
 
 
